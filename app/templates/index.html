@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PCMDI Parallel Coordinates</title>
+    <style type="text/css">
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        color: #111;
+        font-family: Ubuntu, Helvetica, sans-serif;
+        font-size: 12px;
+        line-height: 1.35em;
+      }
+      a {
+        color: #6be;
+        text-decoration: none;
+      }
+      .row,
+      .header,
+      .cell {
+        height: 2rem;
+      }
+      .row,
+      .header {
+        clear: left;
+      }
+      .header {
+        font-weight: bold;
+      }
+      .cell {
+        float: left;
+        overflow: hidden;
+        white-space: nowrap;
+        width: 100px;
+      }
+      .col-0 {
+        width: 180px;
+      }
+      .path_highlight {
+        stroke-width: 4px;
+        opacity: 0.8;
+      }
+      .path_regular {
+        stroke-width: 1px;
+        opacity: 0;
+      }
+      #viz_div {
+        height: 70%;
+      }
+      #my_dataviz {
+        height: 100%;
+      }
+
+      div.tooltip {
+        position: absolute;
+        text-align: center;
+        width: 85px;
+        height: 45px;
+        padding: 2px;
+        font: 12px sans-serif;
+        background: lightsteelblue;
+        border: 0px;
+        border-radius: 8px;
+        pointer-events: none;
+      }
+      .custom-columns {
+        width: 100%;
+        flex-direction: column;
+        display: flex;
+      }
+      #button_div {
+        margin-bottom: 0.8em;
+        margin-left: 0.8em;
+      }
+      .control {
+        margin-left: 0.8em;
+        margin-bottom: 0.8em;
+      }
+      #grid {
+        margin-left: 0.8em;
+      }
+      .sliderDiv {
+        width: 25%;
+        margin-left: 2em;
+        margin-right: 2em;
+        margin-top: 2em;
+        margin-bottom: 2em;
+      }
+      .csv_selector, .submitButton {
+        margin-left: 0.8em;
+        margin-bottom: 0.8em;  
+      }
+      .custom_scale_checkbox {
+        margin-top: 0.8em;  
+      }
+      #plotButton{
+        margin-left: 1em;
+      }
+      .attribute_selector {
+        margin-left: 0.8em;
+        margin-bottom: 0.8em;
+        margin-right: 0.8em;
+      }
+      .hide{
+        display: none !important;
+      }
+
+      .svg-container {
+        display: inline-block;
+        position: relative;
+        width: 100%;
+        padding-bottom: 100%;
+        vertical-align: top;
+        overflow: hidden;
+    }
+    .svg-content {
+        display: inline-block;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    </style>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script type="module" src="{{url_for('static', filename='divgrid.js')}}"></script>
+    <link href="{{url_for('static', filename='nouislider.min.css')}}" rel="stylesheet" />
+    <link href="{{url_for('static', filename='animate.css')}}" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.min.css"
+    />
+    <script
+      defer
+      src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"
+    ></script>
+    <link href="{{url_for('static', filename='bulma-switch.min.css')}}" rel="stylesheet" />
+    <link href="{{url_for('static', filename='bulma-checkradio.min.css')}}" rel="stylesheet" />
+    <style>
+      .column {
+        display: flex;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a class="navbar-item" href="https://pcmdi.llnl.gov/">
+          <img src="{{url_for('static', filename='img/PCMDILogo_200x65px_72dpi.png')}}" alt="Bulma: Free, open source, & modern CSS framework based on Flexbox" width="112" height="28">
+        </a>
+
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </a>
+      </div>
+    </nav>
+    <section class="section">
+      <div id="container">
+        This is a <font color="red"><b>PROTOTYPE</b></font> of PCMDI’s Interactive Parallel Coordinate Plot (iPCP) used to dynamically 
+        display the different mean climate statistics routinely generated with the PCMDI Metrics Package (PMP). 
+        Each vertical axis represents an independent scalar calculation or metric. The default displays results from each model as symbols. 
+        The user can highlight a given model by selecting a symbol on the plot or from the table below the plot.
+        This feature allows, for example, two versions of the same model to be contrasted against the backdrop of results from the multi-model ensemble (symbols).
+        <br /> 
+        <br />
+        The current version allows the user to display <a href="https://pcmdi.llnl.gov/mips/cmip5/" target="_blank">CMIP5</a> and <a href="https://pcmdi.llnl.gov/CMIP6/" target="_blank">CMIP6</a> results as: 
+        1) All variables for a given season, or 2) All seasons for a given variable.
+        <br />
+        <br /> 
+        The orthogonal decomposition of statistics is described in <a href="https://doi.org/10.1029/2007JD008972">Gleckler et al., 2008</a>. 
+        The software design and its use is being developed at PCMDI by William Hill, Jiwoo Lee, and Peter Gleckler. 
+        Comments can be sent to gleckler1@llnl.gov.
+        <br />
+        <br />
+        <font color="red"
+          >* Please note this page is optimized for screen resolution wider than 1700 pixels.   If you are having problems seeing the legend, try making your window wider.<br
+        /></font>
+      </div>
+    </section>
+    <nav class="level">
+      <div class="level-item has-text-centered">
+        <div class="control">
+          <div class="field">
+            <input type="radio" class="is-checkradio" name="level" id="plotAllSeasonsByVariable" value="plotAllSeasonsByVariable" checked="checked">
+            <label for="plotAllSeasonsByVariable">Plot all seasons for a given variable</label>
+            <input type="radio" class="is-checkradio" id="plotAllVariablesBySeason" value="plotAllVariablesBySeason" name="level">
+            <label for="plotAllVariablesBySeason">Plot all variables for a given season</label>
+        </div>
+          </div>
+      </div>
+    </nav>
+    <nav class="level">
+      <div class="level-item has-text-centered">
+        <form id="selector_form">
+          <div class="field is-grouped">
+            <label id="variable_label" class="label">Variable</label>
+            <div class="select attribute_selector" id="variable_selector_div">
+              <select id="variable_selector" name="variable">
+                {% for variable in variables %}
+                  <option href="{{ variable }}">{{ variable }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <label id="season_label" class="label hide">Season</label>
+            <div class="select attribute_selector hide" id="season_selector_div">
+              <select id="season_selector" name="season" disabled="disabled">
+                {% for season in seasons %}
+                  <option href="{{ season }}">{{ season }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <label id="model_generation_label" class="label">Model Generation</label>
+            <div class="select attribute_selector" id="model_generation_div">
+              <select id="model_generation" name="model_generation">
+                {% for model_generation in model_generations %}
+                  <option href="{{ model_generation }}">{{ model_generation }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <label class="label">Region</label>
+            <div class="select attribute_selector">
+              <select id="region_selector" name="region">
+                {% for region in regions %}
+                  <option value="{{ region }}" href="{{ region }}" {% if region=="global" %} selected="selected"{% endif %}>{{ region }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <label class="label">Statistic</label>
+            <div class="select attribute_selector">
+              <select id="statistic_selector" name="statistic">
+                {% for statistic in statistics %}
+                  <option href="{{ statistic }}">{{ statistic }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <input id="plotButton" class="button is-primary" type="submit" value="Plot">
+          </div>
+        </form>
+      </div>
+    </nav>
+    <nav class="level">
+      <div class="level-item has-text-centered">
+        <div class="control">
+          <div class="field custom_scale_checkbox">
+            <input type="checkbox" name="customScaleToggle" class="switch" id="customScaleToggle">
+            <label for="customScaleToggle">Custom Scale</label>
+          </div>
+        </div>
+        <div class="sliderDiv" id="slider"></div>
+        <button class="button" id="updateScaleButton" disabled>
+            Update Scale
+        </button>
+      </div>
+    </nav>
+    <nav class="level">
+      <h2 id="plot_title" class="level-item has-text-centered"></h2>
+    </nav>
+    <!-- Create a div where the graph will take place -->
+    <div id="viz_div" class="columns is-mobile">
+      <div
+        id="my_dataviz"
+        class="column is-9-widescreen is-10-desktop is-8-touch"
+      >
+        <div id="parallel_coords_div" class="container is-fluid"></div>
+      </div>
+      <div id="legend" class="column">
+        <div
+          id="legendColumns"
+          class="columns custom-columns is-mobile is-flex is-multiline is-2-desktop is-2-touch is-variable"
+        ></div>
+      </div>
+    </div>
+    <div id="button_div">
+      <a id="select_all" class="button">Select All</a>
+      <a id="deselect_all" class="button">Deselect All</a>
+    </div>
+    <div id="grid"></div>
+    <script src="{{url_for('static', filename='nouislider.min.js')}}"></script>
+    <script src="{{url_for('static', filename='bulma-toast.min.js')}}"></script>
+    <script type="module" src="{{url_for('static', filename='parallel_coordinates.js')}}"></script>
+  </body>
+</html>
